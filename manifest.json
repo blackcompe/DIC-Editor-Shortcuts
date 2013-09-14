@@ -3,16 +3,16 @@
     "version": "0.1",
     "manifest_version": 2,
     "description": "A user script for keyboard shortcuts in the DIC editor",
-	"icons": {
-		"16": "img/icon16.png",
-		"48": "img/icon48.png"
-	},
+    "icons": {
+        "16": "img/icon16.png",
+        "48": "img/icon48.png"
+    },
     "permissions": ["clipboardRead"],
     "content_scripts": [
         {
             "matches": ["*://*.dreamincode.net/*"],
-            "js": ["js/jquery-2.0.3.js", "js/jquery.hotkeys.js", "js/jquery-ui.js", "js/dic.js"],
-            "css": ["css/jquery-ui.css"]
+            "js": ["js/jquery-2.0.3.js", "js/jquery.hotkeys.js", "js/bootstrap.js", "js/jquery-ui-1.9.2.js", "js/dic.js"],
+            "css": ["css/bootstrap.css", "css/bootstrap-theme.css", "css/jquery-ui-1.9.2.css"]
         }
     ],
     "background": {

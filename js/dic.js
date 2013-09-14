@@ -189,7 +189,8 @@ bindings.MemberTagBinding = function(hotkeys) {
     bindings.TagBinding.call(this, hotkeys, "[member='']", null,
             defaultHandler);
 
-    var pHandler = this.defaultHandler;    
+    var pHandler = this.defaultHandler;
+    this.modalCreated = false;
 
     function defaultHandler(evt)
     {
@@ -201,12 +202,27 @@ bindings.MemberTagBinding = function(hotkeys) {
         if (hasSelection)
             position = initCursorPosition + 9;
         cursor.move(position, position);
-        var users = findUsers();
-        createDialog(users);
-        $("#usr-tbl").dialog("open");
+        createDialog();
     }
 
-    function findUsers()
+    /**
+     * Insert the given user name in the quotes of the member tag, and
+     * move the cursor forward 3 spaces.
+     */
+    function insertUserInTag(user)
+    {
+        var cursor = dic.editor.getCursor();
+        var position = cursor.getCursorPosition();
+        var textarea = dic.editor.getTextArea();
+        textarea.value = textarea.value.insert(user, position) + " ";
+        cursor.move(position + user.length + 3, position + user.length + 3);
+    }
+
+    /**
+     * Return an array of the names of the DIC users who have posted
+     * on the current page.
+     */
+    function getPageUsers()
     {
         var users = [];
         $("a.url.fn").each(function()
@@ -218,38 +234,152 @@ bindings.MemberTagBinding = function(hotkeys) {
         return users;
     }
 
-    function createDialog(users)
+    /**
+     * Make an asynchronous AJAX call to get the names of the friends for 
+     * the user with the given user id. If the user id doesn't exist, an 
+     * empty array is returned, otherwise an array of names is returned.
+     */
+    function getUserFriends(userId)
     {
-        var div = "<div id=\"usr-tbl\"><fieldset id=\"usr-tbl-fld\">";
-        div += "</fieldset></div>";
-        $('body').append(div);
-        users.map(function(aUser)
-        {
-            var input = "<input type=\"button\" value=\"" + aUser + "\"/>";
-            $('#usr-tbl-fld').append(input);
+        var friends = [];
+        $.ajax({
+            type: "GET",
+            dataType: "xml",
+            url: "http://www.dreamincode.net/forums/xml.php",
+            data: {"showuser": userId},
+            async: false,
+            success: function(data)
+            {
+                $(data).find("friends user name").each(function()
+                {
+                    friends.push($(this).text());
+                });
+            },
+            error: function(jqXHR, textStatus, errorThrown)
+            {
+                //TODO alert message in dialog
+            }
         });
-        $("#usr-tbl-fld :button").button();
-        $("#usr-tbl-fld :button").click(function()
-        {
-            $("#usr-tbl").dialog("close");
-            setUserAtCursor($(this).attr('value'));
-            $("#usr-tbl").remove();
-        });
-        $("#usr-tbl").dialog({
-            autoOpen: false,
-            height: 400,
-            width: 500,
-            modal: true
-        });
+        return friends;
     }
 
-    function setUserAtCursor(user)
+    //TODOs
+    //1. Make the modal into a scrollable vertical list.
+    //2. Up and down arrows should navigate the list
+    //3. Enter should select and close
+    //4. Text box available at top (or possibly side) of modal for entering names not listed in thread. Should not be focused by default.
+
+    function createDialog()
     {
-        var cursor = dic.editor.getCursor();
-        var position = cursor.getCursorPosition();
-        var textarea = dic.editor.getTextArea();
-        textarea.value = textarea.value.insert(user, position);
-        cursor.move(position, position);
+        if (!this.modalCreated)
+        {
+            //Get user friends
+            var friends = getUserFriends(4803);
+            var friendStr = "";
+            for (var i in friends)
+                friendStr += "\"" + friends[i] + "\",";
+            friendStr = friendStr.substring(0, friendStr.length - 1);
+
+            //Autocomplete JS code
+            var modal = "<script>$(function() { var members = [";
+            modal += friendStr;
+            modal += "]; $(\"#mem-srch\").autocomplete({source:members});});";
+            modal += "</script>";
+
+            //Model - initialization
+            modal += "<div id=\"mem-modal\" class=\"modal fade\" role=\"dialog\">";
+            modal += "<div class=\"modal-dialog\"><div class=\"modal-content\">";
+            modal += "<div class=\"modal-header\"><button type=\"button\" ";
+            modal += "class=\"close btn btn-primary\" data-dismiss=\"modal\" ";
+            modal += "aria-hidden=\"true\">&times;</button>";
+
+            //Modal - Autocomplete text form
+            modal += "<form class=\"form-inline\" role=\"form\">";
+            modal += "<div class=\"ui-widget\"><div class=\"form-group\">";
+            modal += "<label for=\"mem-srch\">Search DIC Friends:</label>";
+            modal += "<input type=\"text\" class=\"form-control \" id=\"mem-srch\"";
+            modal += "placeholder=\"Member Name\"/></div><div class=\"form-group\">";
+            modal += "<label>&nbsp;</label>";
+            modal += "<button id=\"mem-srch-btn\" type=\"button\" class=\"form-control ";
+            modal += "btn btn-primary\">Choose</button></div></div></form>";
+
+            //Modal - Page users table
+            modal += "</div><div id=\"mem-modal-body\" class=\"modal-body\" ";
+            modal += "style=\"height:400px; width:448px; overflow:auto\">";
+            modal += "<table id=\"mem-modal-tbl\" class=\"table table-hover ";
+            modal += "table-condensed table-striped\">";
+            modal += "</table></div></div></div></div>";
+
+            //Add modal html to page
+            $("body").append(modal);
+            
+            //Resize modal width
+            $("body .modal-dialog").css("width", "470px");
+
+            //Hide modal backdrop
+            $(".modal").css("background-color", "rgba(250, 250, 250, 0)");
+            
+            //Disable modal background click to hide
+            $("#mem-modal").modal({backdrop: "static"});
+
+            //On modal close, focus editor, clear text, reset scrollbar, 
+            //and remove key bindings
+            $('#mem-modal').on('hide.bs.modal', function()
+            {
+                $("#mem-srch").val("");
+                $("#mem-modal-body").scrollTop(0);
+                //TODO
+                dic.editor.getTextArea().focus();
+            });
+
+            //On model open, focus first button and add key bindings
+            $('#mem-modal').on('show.bs.modal', function()
+            {
+                //$("#mem-modal-tbl tr:first td button").focus();
+                //TODO
+            });
+
+            //Autocomplete button handler
+            $("#mem-srch-btn").button();
+            $("#mem-srch-btn").click(function()
+            {
+                var name = $("#mem-srch").val();
+                if(name)
+                    insertUserInTag(name);
+                $("#mem-modal").modal("hide");
+            });
+
+            //Add page user buttons in modal table
+            var pageUsers = getPageUsers();
+            pageUsers.map(function(aUser)
+            {
+                var input = "<tr><td style=\"border-top:none\">";
+                input += "<button type=\"button\" class=\"btn btn-primary\">";
+                input += aUser + "</button></td></tr>";
+                $('#mem-modal-tbl').append(input);
+            });
+
+            //Add handlers to page user buttons
+            $("#mem-modal-tbl button").button();
+            $("#mem-modal-tbl button").click(function()
+            {
+                insertUserInTag($(this).text());
+                $("#mem-modal").modal("hide");
+            });
+            
+            //Set button color
+            $("#mem-modal .btn").css({
+                "border-color" : "1px solid #f16d12",
+                "background-color" : "#f16d12",
+                "color" : "white"
+            });
+
+            //Create modal once
+            this.modalCreated = true;
+        }
+
+        //Show modal
+        $("#mem-modal").modal("show");
     }
 };
 bindings.MemberTagBinding.prototype = new bindings.TagBinding;
