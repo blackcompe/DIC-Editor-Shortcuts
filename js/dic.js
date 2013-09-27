@@ -335,8 +335,6 @@ bindings.MemberTagBinding = function(hotkeys) {
                 },
                 close: function() {
                     $("#dialog-form-srch").val("");
-                    //$("#dialog-form-body").scrollTop(0);
-                    //TODO
                     dic.editor.getTextArea().focus();
                 }
             });
