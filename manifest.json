@@ -11,8 +11,8 @@
     "content_scripts": [
         {
             "matches": ["*://*.dreamincode.net/*"],
-            "js": ["js/jquery-2.0.3.js", "js/jquery.hotkeys.js", "js/bootstrap.js", "js/jquery-ui-1.9.2.js", "js/dic.js"],
-            "css": ["css/bootstrap.css", "css/bootstrap-theme.css", "css/jquery-ui-1.9.2.css"]
+            "js": ["js/jquery-2.0.3.js", "js/jquery.hotkeys-0.8.js", "js/jquery-ui-1.9.2.js", "js/dic.js"],
+            "css": ["css/ui-lightness/jquery-ui-1.9.2.css", "css/ui-lightness/jquery.ui.theme-1.9.2.css"]
         }
     ],
     "background": {

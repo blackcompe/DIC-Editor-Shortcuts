@@ -190,7 +190,7 @@ bindings.MemberTagBinding = function(hotkeys) {
             defaultHandler);
 
     var pHandler = this.defaultHandler;
-    this.modalCreated = false;
+    this.dialogCreated = false;
 
     function defaultHandler(evt)
     {
@@ -263,123 +263,89 @@ bindings.MemberTagBinding = function(hotkeys) {
         return friends;
     }
 
-    //TODOs
-    //1. Make the modal into a scrollable vertical list.
+    //FUTURE TODOs
+    //1. Make the dialog into a scrollable vertical list.
     //2. Up and down arrows should navigate the list
     //3. Enter should select and close
-    //4. Text box available at top (or possibly side) of modal for entering names not listed in thread. Should not be focused by default.
+    //4. Text box available at top (or possibly side) of dialog for entering names not listed in thread. Should not be focused by default.
 
     function createDialog()
     {
-        if (!this.modalCreated)
+        if (!this.dialogCreated)
         {
             //Get user friends
             var friends = getUserFriends(4803);
-            var friendStr = "";
+            var arrAsStr = "";
             for (var i in friends)
-                friendStr += "\"" + friends[i] + "\",";
-            friendStr = friendStr.substring(0, friendStr.length - 1);
+                arrAsStr += "\"" + friends[i] + "\",";
+            arrAsStr = arrAsStr.substring(0, arrAsStr.length - 1);
 
             //Autocomplete JS code
-            var modal = "<script>$(function() { var members = [";
-            modal += friendStr;
-            modal += "]; $(\"#mem-srch\").autocomplete({source:members});});";
-            modal += "</script>";
+            var dialog = "<script>$(function() { var members = [";
+            dialog += arrAsStr;
+            dialog += "]; $(\"#dialog-form-srch\").autocomplete({source:members});});";
+            dialog += "</script>";
 
-            //Model - initialization
-            modal += "<div id=\"mem-modal\" class=\"modal fade\" role=\"dialog\">";
-            modal += "<div class=\"modal-dialog\"><div class=\"modal-content\">";
-            modal += "<div class=\"modal-header\"><button type=\"button\" ";
-            modal += "class=\"close btn btn-primary\" data-dismiss=\"modal\" ";
-            modal += "aria-hidden=\"true\">&times;</button>";
+            //Dialog
+            dialog += "<div id=\"dialog-form\" class=\"ui-widget\" title=\"Choose DIC Member\">";
+            dialog += "<label for=\"dialog-form-srch\"><b>Name:&nbsp;</b></label>";
+            dialog += "<input type=\"text\" size=\"40\" id=\"dialog-form-srch\" class=\"text ui-corner-all\" />";
+            dialog += "&nbsp;<button id=\"dialog-form-srch-btn\">Choose</button>";
+            dialog += "<br/><br/><table id=\"dialog-form-tbl\"></table></div>";
 
-            //Modal - Autocomplete text form
-            modal += "<form class=\"form-inline\" role=\"form\">";
-            modal += "<div class=\"ui-widget\"><div class=\"form-group\">";
-            modal += "<label for=\"mem-srch\">Search DIC Friends:</label>";
-            modal += "<input type=\"text\" class=\"form-control \" id=\"mem-srch\"";
-            modal += "placeholder=\"Member Name\"/></div><div class=\"form-group\">";
-            modal += "<label>&nbsp;</label>";
-            modal += "<button id=\"mem-srch-btn\" type=\"button\" class=\"form-control ";
-            modal += "btn btn-primary\">Choose</button></div></div></form>";
-
-            //Modal - Page users table
-            modal += "</div><div id=\"mem-modal-body\" class=\"modal-body\" ";
-            modal += "style=\"height:400px; width:448px; overflow:auto\">";
-            modal += "<table id=\"mem-modal-tbl\" class=\"table table-hover ";
-            modal += "table-condensed table-striped\">";
-            modal += "</table></div></div></div></div>";
-
-            //Add modal html to page
-            $("body").append(modal);
+            //Add dialog html to page
+            $("body").append(dialog);
             
-            //Resize modal width
-            $("body .modal-dialog").css("width", "470px");
-
-            //Hide modal backdrop
-            $(".modal").css("background-color", "rgba(250, 250, 250, 0)");
-            
-            //Disable modal background click to hide
-            $("#mem-modal").modal({backdrop: "static"});
-
-            //On modal close, focus editor, clear text, reset scrollbar, 
-            //and remove key bindings
-            $('#mem-modal').on('hide.bs.modal', function()
-            {
-                $("#mem-srch").val("");
-                $("#mem-modal-body").scrollTop(0);
-                //TODO
-                dic.editor.getTextArea().focus();
-            });
-
-            //On model open, focus first button and add key bindings
-            $('#mem-modal').on('show.bs.modal', function()
-            {
-                //$("#mem-modal-tbl tr:first td button").focus();
-                //TODO
-            });
-
             //Autocomplete button handler
-            $("#mem-srch-btn").button();
-            $("#mem-srch-btn").click(function()
+            $("#dialog-form-srch-btn").button();
+            $("#dialog-form-srch-btn").click(function()
             {
-                var name = $("#mem-srch").val();
-                if(name)
+                var name = $("#dialog-form-srch").val();
+                if (name)
                     insertUserInTag(name);
-                $("#mem-modal").modal("hide");
+                $("#dialog-form").dialog("close");
             });
 
-            //Add page user buttons in modal table
+            //Add page user buttons in dialog table
             var pageUsers = getPageUsers();
             pageUsers.map(function(aUser)
             {
                 var input = "<tr><td style=\"border-top:none\">";
-                input += "<button type=\"button\" class=\"btn btn-primary\">";
-                input += aUser + "</button></td></tr>";
-                $('#mem-modal-tbl').append(input);
+                input += "<button>" + aUser + "</button></td></tr>";
+                $('#dialog-form-tbl').append(input);
             });
 
             //Add handlers to page user buttons
-            $("#mem-modal-tbl button").button();
-            $("#mem-modal-tbl button").click(function()
+            $("#dialog-form-tbl button").button();
+            $("#dialog-form-tbl button").click(function()
             {
                 insertUserInTag($(this).text());
-                $("#mem-modal").modal("hide");
+                $("#dialog-form").dialog("close");
             });
             
-            //Set button color
-            $("#mem-modal .btn").css({
-                "border-color" : "1px solid #f16d12",
-                "background-color" : "#f16d12",
-                "color" : "white"
+            //Create dialog
+            $("#dialog-form").dialog({
+                autoOpen: false,
+                height: 500,
+                width: 450,
+                dialog: true,
+                open: function() {
+                  //$("#dialog-form-tbl tr:first td button").focus();
+                    //TODO
+                },
+                close: function() {
+                    $("#dialog-form-srch").val("");
+                    //$("#dialog-form-body").scrollTop(0);
+                    //TODO
+                    dic.editor.getTextArea().focus();
+                }
             });
-
-            //Create modal once
-            this.modalCreated = true;
+            
+            //Create dialog once
+            this.dialogCreated = true;
         }
-
-        //Show modal
-        $("#mem-modal").modal("show");
+        
+        $("#dialog-form").dialog("open");
     }
 };
 bindings.MemberTagBinding.prototype = new bindings.TagBinding;
@@ -574,7 +540,11 @@ $(document).ready(function() {
     }
 });
 
-//TODOs: 
+//CURRENT TODOs:
+//      (1) Fix UrlTag binding
+//      (2) MemberTag TODOs
+
+//FUTURE TODOs: 
 //      (1) Create options page where user can add bindings
 //      (2) When (1) is completed, get bindings from local storage
 //      (3) Finish README
